@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/loginUI/signup.dart';
+import 'package:myapp/loginUI/login.dart';
+import 'package:myapp/loginUI/landingpage.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,9 +13,14 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter',
+      title: 'Medical Q&A App',
       debugShowCheckedModeBanner: false,
-      home: const SignUp(),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const LandingPage(),
+        '/login': (context) => const LogIn(),
+        '/signup': (context) => const SignUp(),
+      },
     );
   }
 }
