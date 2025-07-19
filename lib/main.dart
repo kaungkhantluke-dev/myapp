@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:myapp/loginUI/signup.dart';
 import 'package:myapp/loginUI/login.dart';
 import 'package:myapp/loginUI/landingpage.dart';
+import 'package:myapp/loginUI/chgpassword.dart';
 
 void main() {
   runApp(const MyApp());
@@ -20,6 +21,7 @@ class MyApp extends StatelessWidget {
         '/': (context) => const LandingPage(),
         '/login': (context) => const LogIn(),
         '/signup': (context) => const SignUp(),
+        '/chgpassword': (context) => const ChgPassword(),
       },
     );
   }
