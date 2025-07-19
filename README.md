@@ -1,10 +1,10 @@
 # myapp
 
-A new Flutter project.
+Medical Q&A App project.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+This project is for those who are in medical field and want to learn by practicing Q&A.
 
 A few resources to get you started if this is your first Flutter project:
 
