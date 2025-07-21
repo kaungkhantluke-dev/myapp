@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "114806408792",
+    "project_id": "medquiz-74114",
+    "storage_bucket": "medquiz-74114.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:114806408792:android:686da38fc79a386205ac2d",
+        "android_client_info": {
+          "package_name": "com.lukedev.medquiz"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBsYK0tdO3uTXi5q8z18uIBYs6N1AepiXY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
