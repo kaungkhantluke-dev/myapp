@@ -1,4 +1,4 @@
-package com.example.myapp
+package com.lukedev.medquiz
 
 import io.flutter.embedding.android.FlutterActivity
 

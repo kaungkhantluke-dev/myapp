@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart'; 
+import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
-import 'package:myapp/loginUI/signup.dart';
-import 'package:myapp/loginUI/login.dart';
-import 'package:myapp/loginUI/landingpage.dart';
-import 'package:myapp/loginUI/chgpassword.dart';
-import 'package:myapp/loginUI/feedpage.dart';
+import 'package:medquiz/loginUI/signup.dart';
+import 'package:medquiz/loginUI/login.dart';
+import 'package:medquiz/loginUI/landingpage.dart';
+import 'package:medquiz/loginUI/chgpassword.dart';
+import 'package:medquiz/loginUI/feedpage.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

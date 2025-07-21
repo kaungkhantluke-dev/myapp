@@ -48,7 +48,7 @@ class _LogInState extends State<LogIn> {
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
       if (googleUser == null) {
         setState(() => isLoading = false);
-        return; // User cancelled
+        return; // user canceled
       }
 
       final GoogleSignInAuthentication googleAuth =
@@ -59,14 +59,35 @@ class _LogInState extends State<LogIn> {
         idToken: googleAuth.idToken,
       );
 
-      await FirebaseAuth.instance.signInWithCredential(credential);
-      Navigator.pushNamed(context, '/feedpage');
-    } on FirebaseAuthException catch (e) {
+      final userCredential = await FirebaseAuth.instance.signInWithCredential(
+        credential,
+      );
+
+      final uid = userCredential.user?.uid;
+      if (uid == 'S2XZCBpWelhsgvzLMLCYNVOFYla2') {
+        Navigator.pushNamed(context, '/feedpage');
+      } else {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text("Access Denied"),
+            content: const Text("Only the admin can use Google Sign-In."),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("OK"),
+              ),
+            ],
+          ),
+        );
+        await FirebaseAuth.instance.signOut();
+      }
+    } catch (e) {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text("Google Sign-In Failed"),
-          content: Text(e.message ?? "Unknown error"),
+          title: const Text("Sign-In Failed"),
+          content: Text(e.toString()),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
@@ -228,21 +249,22 @@ class _LogInState extends State<LogIn> {
                       const SizedBox(height: 10),
                       SizedBox(
                         width: double.infinity,
-                        child: OutlinedButton.icon(
-                          icon: Image.asset(
-                            'assets/google.png',
-                            height: 20,
-                            width: 20,
-                          ),
-                          label: const Text("Sign in with Google"),
+                        child: ElevatedButton.icon(
                           onPressed: isLoading ? null : signInWithGoogle,
-                          style: OutlinedButton.styleFrom(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.black,
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                            side: const BorderSide(color: Colors.black12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
+                              side: const BorderSide(color: Colors.grey),
                             ),
                           ),
+                          icon: Image.asset(
+                            'assets/images/google.png',
+                            height: 20,
+                          ),
+                          label: const Text("Sign in with Google"),
                         ),
                       ),
 

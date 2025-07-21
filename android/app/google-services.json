@@ -12,7 +12,20 @@
           "package_name": "com.lukedev.medquiz"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "114806408792-vhi4v0meuhpkiv43i681ktle3rmapr2r.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.lukedev.medquiz",
+            "certificate_hash": "da5e63a5d752307ee29ab8963f04ac9ca6e78ec5"
+          }
+        },
+        {
+          "client_id": "114806408792-k350alhlsdphgqpubda4016rlc5ng3rn.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBsYK0tdO3uTXi5q8z18uIBYs6N1AepiXY"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "114806408792-k350alhlsdphgqpubda4016rlc5ng3rn.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "114806408792-9to10b5ub4h13697cs4kniabtnkd3p4h.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.myapp"
+              }
+            }
+          ]
         }
       }
     }
