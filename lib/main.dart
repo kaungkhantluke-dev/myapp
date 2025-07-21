@@ -7,6 +7,7 @@ import 'package:medquiz/loginUI/login.dart';
 import 'package:medquiz/loginUI/landingpage.dart';
 import 'package:medquiz/loginUI/chgpassword.dart';
 import 'package:medquiz/loginUI/feedpage.dart';
+import 'package:medquiz/loginUI/admin.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,6 +30,7 @@ class MyApp extends StatelessWidget {
         '/signup': (context) => const SignUp(),
         '/chgpassword': (context) => const ChgPassword(),
         '/feedpage': (context) => const FeedPage(),
+        '/admin': (context) => const AdminDashboardScreen(),
       },
     );
   }

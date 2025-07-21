@@ -43,49 +43,143 @@ class FeedPage extends StatelessWidget {
 
               final question = data['question'] ?? 'No Question';
               final answer = data['answer'] ?? 'No Answer';
+              final fact = data['fact'] ?? 'No explanation provided.';
               final timestamp = data['timestamp'] != null
                   ? (data['timestamp'] as Timestamp).toDate()
                   : DateTime.now();
 
-              return Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 4,
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        question,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.deepPurple,
-                        ),
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => QuestionDetailPage(
+                        question: question,
+                        answer: answer,
+                        fact: fact,
+                        timestamp: timestamp,
                       ),
-                      const SizedBox(height: 8),
-                      Text(answer, style: const TextStyle(fontSize: 16)),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.bottomRight,
-                        child: Text(
-                          DateFormat.yMMMd().add_jm().format(timestamp),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
+                    ),
+                  );
+                },
+                child: Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 4,
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          question,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepPurple,
                           ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        Text(
+                          answer,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(height: 12),
+                        Align(
+                          alignment: Alignment.bottomRight,
+                          child: Text(
+                            DateFormat.yMMMd().add_jm().format(timestamp),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
             },
           );
         },
+      ),
+    );
+  }
+}
+
+class QuestionDetailPage extends StatelessWidget {
+  final String question;
+  final String answer;
+  final String fact;
+  final DateTime timestamp;
+
+  const QuestionDetailPage({
+    super.key,
+    required this.question,
+    required this.answer,
+    required this.fact,
+    required this.timestamp,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Q&A Detail'),
+        backgroundColor: Colors.indigo.shade900,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Card(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 4,
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Question:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                const SizedBox(height: 6),
+                Text(question, style: const TextStyle(fontSize: 16)),
+
+                const SizedBox(height: 16),
+                Text(
+                  'Answer:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                const SizedBox(height: 6),
+                Text(answer, style: const TextStyle(fontSize: 16)),
+
+                const SizedBox(height: 16),
+                Text(
+                  'Explanation (Fact):',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                const SizedBox(height: 6),
+                Text(fact, style: const TextStyle(fontSize: 16)),
+
+                const Spacer(),
+                Align(
+                  alignment: Alignment.bottomRight,
+                  child: Text(
+                    DateFormat.yMMMd().add_jm().format(timestamp),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

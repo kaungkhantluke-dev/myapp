@@ -15,14 +15,26 @@ class _LogInState extends State<LogIn> {
 
   bool isLoading = false;
 
+  static const String adminUID = 'S2XZCBpWelhsgvzLMLCYNVOFYla2';
+
+  void redirectUser(String? uid) {
+    if (uid == adminUID) {
+      Navigator.pushNamed(context, '/admin');
+    } else {
+      Navigator.pushNamed(context, '/feedpage');
+    }
+  }
+
   Future<void> login() async {
     setState(() => isLoading = true);
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
-      Navigator.pushNamed(context, '/feedpage');
+      final userCredential = await FirebaseAuth.instance
+          .signInWithEmailAndPassword(
+            email: emailController.text.trim(),
+            password: passwordController.text.trim(),
+          );
+      final uid = userCredential.user?.uid;
+      redirectUser(uid);
     } on FirebaseAuthException catch (e) {
       showDialog(
         context: context,
@@ -53,7 +65,6 @@ class _LogInState extends State<LogIn> {
 
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
-
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
@@ -62,11 +73,12 @@ class _LogInState extends State<LogIn> {
       final userCredential = await FirebaseAuth.instance.signInWithCredential(
         credential,
       );
-
       final uid = userCredential.user?.uid;
-      if (uid == 'S2XZCBpWelhsgvzLMLCYNVOFYla2') {
-        Navigator.pushNamed(context, '/feedpage');
+
+      if (uid == adminUID) {
+        redirectUser(uid);
       } else {
+        await FirebaseAuth.instance.signOut(); // block unauthorized user
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
@@ -80,7 +92,6 @@ class _LogInState extends State<LogIn> {
             ],
           ),
         );
-        await FirebaseAuth.instance.signOut();
       }
     } catch (e) {
       showDialog(
@@ -247,6 +258,8 @@ class _LogInState extends State<LogIn> {
                         ),
                       ),
                       const SizedBox(height: 10),
+
+                      // Google Sign-In Button
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
@@ -278,7 +291,6 @@ class _LogInState extends State<LogIn> {
                           style: TextStyle(color: Colors.black54),
                         ),
                       ),
-
                       const SizedBox(height: 8),
 
                       // Sign up
