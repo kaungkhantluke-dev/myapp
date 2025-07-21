@@ -1,7 +1,99 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
-class LogIn extends StatelessWidget {
+class LogIn extends StatefulWidget {
   const LogIn({super.key});
+
+  @override
+  State<LogIn> createState() => _LogInState();
+}
+
+class _LogInState extends State<LogIn> {
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
+  bool isLoading = false;
+
+  Future<void> login() async {
+    setState(() => isLoading = true);
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+      Navigator.pushNamed(context, '/feedpage');
+    } on FirebaseAuthException catch (e) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Login Failed"),
+          content: Text(e.message ?? "Unknown error"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  Future<void> signInWithGoogle() async {
+    setState(() => isLoading = true);
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) {
+        setState(() => isLoading = false);
+        return; // User cancelled
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      await FirebaseAuth.instance.signInWithCredential(credential);
+      Navigator.pushNamed(context, '/feedpage');
+    } on FirebaseAuthException catch (e) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Google Sign-In Failed"),
+          content: Text(e.message ?? "Unknown error"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  void printMyUID() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      print("Your UID is: ${user.uid}");
+    } else {
+      print("No user is signed in.");
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    printMyUID();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -81,6 +173,7 @@ class LogIn extends StatelessWidget {
 
                       // Username
                       TextField(
+                        controller: emailController,
                         decoration: InputDecoration(
                           prefixIcon: const Icon(Icons.person),
                           labelText: 'Username',
@@ -93,6 +186,7 @@ class LogIn extends StatelessWidget {
 
                       // Password
                       TextField(
+                        controller: passwordController,
                         obscureText: true,
                         decoration: InputDecoration(
                           prefixIcon: const Icon(Icons.lock),
@@ -108,9 +202,7 @@ class LogIn extends StatelessWidget {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pushNamed(context, '/feedpage');
-                          },
+                          onPressed: isLoading ? null : login,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.indigo,
                             foregroundColor: Colors.white,
@@ -123,13 +215,36 @@ class LogIn extends StatelessWidget {
                             ),
                             elevation: 4,
                           ),
-                          child: const Text(
-                            'Log In',
-                            style: TextStyle(fontSize: 16),
+                          child: isLoading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
+                              : const Text(
+                                  'Log In',
+                                  style: TextStyle(fontSize: 16),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          icon: Image.asset(
+                            'assets/google.png',
+                            height: 20,
+                            width: 20,
+                          ),
+                          label: const Text("Sign in with Google"),
+                          onPressed: isLoading ? null : signInWithGoogle,
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(color: Colors.black12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
 
                       // Forget password
                       TextButton(

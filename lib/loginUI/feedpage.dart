@@ -1,96 +1,91 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
-class FeedPage extends StatefulWidget {
+class FeedPage extends StatelessWidget {
   const FeedPage({super.key});
 
   @override
-  State<FeedPage> createState() => _FeedPageState();
-}
-
-class _FeedPageState extends State<FeedPage> {
-  @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-
     return Scaffold(
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // Background circles
-            Positioned(
-              top: -screenHeight * 0.5,
-              right: -screenWidth * 0.2,
-              child: CircleAvatar(
-                backgroundColor: Colors.blue.shade900,
-                radius: screenWidth * 1.0,
-              ),
-            ),
-            Positioned(
-              top: screenHeight * 0.05,
-              right: -screenWidth * 0.1,
-              child: CircleAvatar(
-                backgroundColor: Colors.white,
-                radius: screenWidth * 0.15,
-              ),
-            ),
-            Positioned(
-              bottom: -screenHeight * 0.6,
-              left: -screenWidth * 0.07,
-              child: CircleAvatar(
-                backgroundColor: Colors.blue.shade900,
-                radius: screenWidth * 1.0,
-              ),
-            ),
-            Positioned(
-              bottom: -screenHeight * 0.07,
-              left: screenWidth * 0.09,
-              child: CircleAvatar(
-                backgroundColor: Colors.white,
-                radius: screenWidth * 0.15,
-              ),
-            ),
+      backgroundColor: Colors.grey[200],
+      appBar: AppBar(
+        backgroundColor: Colors.indigo.shade900,
+        title: const Text('Q&A Feed'),
+        centerTitle: true,
+        elevation: 0,
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('questions')
+            .orderBy('timestamp', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-            // Feed content
-            Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Container(
-                  width: screenWidth * 0.85,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 24,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 10,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return const Center(
+              child: Text(
+                'No questions yet.',
+                style: TextStyle(fontSize: 16, color: Colors.black54),
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(12),
+            itemCount: snapshot.data!.docs.length,
+            itemBuilder: (context, index) {
+              final doc = snapshot.data!.docs[index];
+              final data = doc.data() as Map<String, dynamic>;
+
+              final question = data['question'] ?? 'No Question';
+              final answer = data['answer'] ?? 'No Answer';
+              final timestamp = data['timestamp'] != null
+                  ? (data['timestamp'] as Timestamp).toDate()
+                  : DateTime.now();
+
+              return Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 4,
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Feed Page',
-                        style: TextStyle(
-                          fontSize: 24,
+                        question,
+                        style: const TextStyle(
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: Colors.deepPurple,
                         ),
                       ),
-                      SizedBox(height: 20),
-                      // Add your feed content here
+                      const SizedBox(height: 8),
+                      Text(answer, style: const TextStyle(fontSize: 16)),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.bottomRight,
+                        child: Text(
+                          DateFormat.yMMMd().add_jm().format(timestamp),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ),
-            ),
-          ],
-        ),
+              );
+            },
+          );
+        },
       ),
     );
   }

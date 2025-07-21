@@ -1,7 +1,65 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class SignUp extends StatelessWidget {
+class SignUp extends StatefulWidget {
   const SignUp({super.key});
+
+  @override
+  State<SignUp> createState() => _SignUpState();
+}
+
+class _SignUpState extends State<SignUp> {
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
+
+  bool isLoading = false;
+
+  Future<void> register() async {
+    if (passwordController.text.trim() !=
+        confirmPasswordController.text.trim()) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Password Mismatch"),
+          content: const Text("Passwords do not match. Please try again."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+    try {
+      await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+      Navigator.pushNamed(context, '/feedpage');
+    } on FirebaseAuthException catch (e) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Registration Failed"),
+          content: Text(e.message ?? "Unknown error"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +84,7 @@ class SignUp extends StatelessWidget {
               right: -screenWidth * 0.1,
               child: const CircleAvatar(
                 backgroundColor: Colors.white,
-                radius: 68, // You can also make this responsive if needed
+                radius: 68,
               ),
             ),
             Positioned(
@@ -83,6 +141,7 @@ class SignUp extends StatelessWidget {
 
                       // Email
                       TextField(
+                        controller: emailController,
                         decoration: InputDecoration(
                           prefixIcon: const Icon(Icons.email),
                           labelText: 'Email',
@@ -100,6 +159,7 @@ class SignUp extends StatelessWidget {
 
                       // Password
                       TextField(
+                        controller: passwordController,
                         obscureText: true,
                         decoration: InputDecoration(
                           prefixIcon: const Icon(Icons.lock),
@@ -118,6 +178,7 @@ class SignUp extends StatelessWidget {
 
                       // Confirm Password
                       TextField(
+                        controller: confirmPasswordController,
                         obscureText: true,
                         decoration: InputDecoration(
                           prefixIcon: const Icon(Icons.lock_outline),
@@ -149,9 +210,7 @@ class SignUp extends StatelessWidget {
                           ),
                           shadowColor: Colors.black54,
                         ),
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/login');
-                        },
+                        onPressed: isLoading ? null : register,
                         child: const Text(
                           'Sign Up',
                           style: TextStyle(fontSize: 16),
