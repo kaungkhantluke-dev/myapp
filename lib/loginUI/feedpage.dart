@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class FeedPage extends StatelessWidget {
   const FeedPage({super.key});
@@ -11,9 +12,29 @@ class FeedPage extends StatelessWidget {
       backgroundColor: Colors.grey[200],
       appBar: AppBar(
         backgroundColor: Colors.indigo.shade900,
-        title: const Text('Q&A Feed'),
+        title: const Text('Q&A Feed', style: TextStyle(color: Colors.white)),
         centerTitle: true,
         elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) async {
+              if (value == 'change_password') {
+                Navigator.pushNamed(context, '/chgpassword');
+              } else if (value == 'logout') {
+                await FirebaseAuth.instance.signOut();
+                Navigator.pushReplacementNamed(context, '/login');
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'change_password',
+                child: Text('Change Password'),
+              ),
+              const PopupMenuItem(value: 'logout', child: Text('Log Out')),
+            ],
+          ),
+        ],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -130,8 +151,9 @@ class QuestionDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Q&A Detail'),
+        title: const Text('Q&A Detail', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.indigo.shade900,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),

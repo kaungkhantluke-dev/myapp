@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SignUp extends StatefulWidget {
   const SignUp({super.key});
@@ -37,11 +38,24 @@ class _SignUpState extends State<SignUp> {
 
     setState(() => isLoading = true);
     try {
-      await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
-      Navigator.pushNamed(context, '/feedpage');
+      final userCredential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(
+            email: emailController.text.trim(),
+            password: passwordController.text.trim(),
+          );
+
+      final user = userCredential.user;
+      if (user != null) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'email': user.email,
+          'displayName': user.email?.split('@')[0], // simple display name
+          'role': 'user',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+
+        Navigator.pushNamed(context, '/feedpage');
+      }
     } on FirebaseAuthException catch (e) {
       showDialog(
         context: context,
@@ -109,7 +123,7 @@ class _SignUpState extends State<SignUp> {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Container(
-                  width: 330, // Fixed card width, as in your original
+                  width: 330,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 32,
                     vertical: 30,
@@ -139,7 +153,6 @@ class _SignUpState extends State<SignUp> {
                       ),
                       const SizedBox(height: 30),
 
-                      // Email
                       TextField(
                         controller: emailController,
                         decoration: InputDecoration(
@@ -157,7 +170,6 @@ class _SignUpState extends State<SignUp> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Password
                       TextField(
                         controller: passwordController,
                         obscureText: true,
@@ -176,7 +188,6 @@ class _SignUpState extends State<SignUp> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Confirm Password
                       TextField(
                         controller: confirmPasswordController,
                         obscureText: true,
@@ -195,7 +206,6 @@ class _SignUpState extends State<SignUp> {
                       ),
                       const SizedBox(height: 30),
 
-                      // Sign Up Button
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.indigo,

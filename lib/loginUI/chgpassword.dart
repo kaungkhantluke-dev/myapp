@@ -1,7 +1,86 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
-class ChgPassword extends StatelessWidget {
+class ChgPassword extends StatefulWidget {
   const ChgPassword({super.key});
+
+  @override
+  State<ChgPassword> createState() => _ChgPasswordState();
+}
+
+class _ChgPasswordState extends State<ChgPassword> {
+  final TextEditingController newPasswordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
+  bool isLoading = false;
+
+  void changePassword() async {
+    final newPassword = newPasswordController.text.trim();
+    final confirmPassword = confirmPasswordController.text.trim();
+
+    if (newPassword != confirmPassword) {
+      showDialog(
+        context: context,
+        builder: (_) => const AlertDialog(
+          title: Text("Password Mismatch"),
+          content: Text("New password and confirm password must be the same."),
+        ),
+      );
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      showDialog(
+        context: context,
+        builder: (_) => const AlertDialog(
+          title: Text("Weak Password"),
+          content: Text("Password must be at least 6 characters long."),
+        ),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception("User not logged in.");
+
+      await user.updatePassword(newPassword);
+      await FirebaseAuth.instance.signOut();
+
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text("Success"),
+            content: const Text(
+              "Password changed successfully. Please log in again.",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.popUntil(context, (route) => route.isFirst);
+                  Navigator.pushReplacementNamed(context, '/login');
+                },
+                child: const Text("OK"),
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text("Error"),
+          content: Text(e.toString()),
+        ),
+      );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -12,7 +91,7 @@ class ChgPassword extends StatelessWidget {
       body: SafeArea(
         child: Stack(
           children: [
-            // Background circles - responsive
+            // Background design (same as before)
             Positioned(
               top: -screenHeight * 0.5,
               right: -screenWidth * 0.2,
@@ -46,7 +125,7 @@ class ChgPassword extends StatelessWidget {
               ),
             ),
 
-            // Centered Form
+            // Form
             Center(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -76,22 +155,16 @@ class ChgPassword extends StatelessWidget {
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: Colors.black,
-                          letterSpacing: 1.2,
                         ),
                       ),
                       const SizedBox(height: 30),
 
-                      // New Password
                       TextField(
+                        controller: newPasswordController,
                         obscureText: true,
                         decoration: InputDecoration(
                           prefixIcon: const Icon(Icons.lock),
                           labelText: 'New Password',
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 18,
-                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -99,17 +172,12 @@ class ChgPassword extends StatelessWidget {
                       ),
                       const SizedBox(height: 20),
 
-                      // Confirm New Password
                       TextField(
+                        controller: confirmPasswordController,
                         obscureText: true,
                         decoration: InputDecoration(
                           prefixIcon: const Icon(Icons.lock_outline),
                           labelText: 'Confirm Password',
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 18,
-                          ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -117,28 +185,71 @@ class ChgPassword extends StatelessWidget {
                       ),
                       const SizedBox(height: 30),
 
-                      // Submit Button
                       ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.indigo,
-                          foregroundColor: Colors.white,
-                          elevation: 6,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 40,
-                            vertical: 14,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          shadowColor: Colors.black54,
-                        ),
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/login');
+                        onPressed: () async {
+                          final newPassword = newPasswordController.text.trim();
+                          final confirmPassword = confirmPasswordController.text
+                              .trim();
+
+                          if (newPassword.isEmpty || confirmPassword.isEmpty) {
+                            showDialog(
+                              context: context,
+                              builder: (_) => const AlertDialog(
+                                title: Text("Error"),
+                                content: Text("Please fill out all fields."),
+                              ),
+                            );
+                            return;
+                          }
+
+                          if (newPassword != confirmPassword) {
+                            showDialog(
+                              context: context,
+                              builder: (_) => const AlertDialog(
+                                title: Text("Mismatch"),
+                                content: Text("Passwords do not match."),
+                              ),
+                            );
+                            return;
+                          }
+
+                          try {
+                            final user = FirebaseAuth.instance.currentUser;
+                            await user?.updatePassword(newPassword);
+
+                            showDialog(
+                              context: context,
+                              builder: (_) => AlertDialog(
+                                title: const Text("Success"),
+                                content: const Text(
+                                  "Password changed successfully.",
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.pop(context); // Close dialog
+                                      Navigator.pop(context); // Go back to feed
+                                    },
+                                    child: const Text("OK"),
+                                  ),
+                                ],
+                              ),
+                            );
+                          } catch (e) {
+                            showDialog(
+                              context: context,
+                              builder: (_) => AlertDialog(
+                                title: const Text("Error"),
+                                content: Text(
+                                  "Failed to change password.\n\n${e.toString()}",
+                                ),
+                              ),
+                            );
+                          }
                         },
                         child: const Text(
-                          'Submit',
-                          style: TextStyle(fontSize: 16),
-                        ),
+                          "Change Password",
+                        ), // ✅ This was missing
                       ),
                     ],
                   ),

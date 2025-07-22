@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LogIn extends StatefulWidget {
   const LogIn({super.key});
@@ -15,13 +16,19 @@ class _LogInState extends State<LogIn> {
 
   bool isLoading = false;
 
-  static const String adminUID = 'S2XZCBpWelhsgvzLMLCYNVOFYla2';
+  Future<void> redirectUser(String uid) async {
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .get();
 
-  void redirectUser(String? uid) {
-    if (uid == adminUID) {
-      Navigator.pushNamed(context, '/admin');
+    final role = userDoc.data()?['role'] ?? 'user';
+    print('User role from Firestore: $role');
+
+    if (role == 'admin') {
+      Navigator.pushReplacementNamed(context, '/admin');
     } else {
-      Navigator.pushNamed(context, '/feedpage');
+      Navigator.pushReplacementNamed(context, '/feedpage');
     }
   }
 
@@ -33,8 +40,26 @@ class _LogInState extends State<LogIn> {
             email: emailController.text.trim(),
             password: passwordController.text.trim(),
           );
-      final uid = userCredential.user?.uid;
-      redirectUser(uid);
+
+      final user = userCredential.user!;
+
+      // 🔥 Check if user document exists in Firestore
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+
+      if (!userDoc.exists) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'email': user.email ?? '',
+          'displayName': user.displayName ?? '',
+          'role': 'user',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      await redirectUser(user.uid);
     } on FirebaseAuthException catch (e) {
       showDialog(
         context: context,
@@ -73,26 +98,31 @@ class _LogInState extends State<LogIn> {
       final userCredential = await FirebaseAuth.instance.signInWithCredential(
         credential,
       );
-      final uid = userCredential.user?.uid;
+      final user = userCredential.user;
 
-      if (uid == adminUID) {
-        redirectUser(uid);
-      } else {
-        await FirebaseAuth.instance.signOut(); // block unauthorized user
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text("Access Denied"),
-            content: const Text("Only the admin can use Google Sign-In."),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("OK"),
-              ),
-            ],
-          ),
+      if (user == null) {
+        throw FirebaseAuthException(
+          message: 'Google Sign-In failed.',
+          code: 'null-user',
         );
       }
+
+      // Save to Firestore if user doesn't exist
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
+      if (!userDoc.exists) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'email': user.email,
+          'displayName': user.displayName,
+          'role': 'user',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      await redirectUser(user.uid);
     } catch (e) {
       showDialog(
         context: context,
@@ -125,6 +155,55 @@ class _LogInState extends State<LogIn> {
   void initState() {
     super.initState();
     printMyUID();
+  }
+
+  void showForgotPasswordDialog(BuildContext context) {
+    final emailController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Reset Password"),
+        content: TextField(
+          controller: emailController,
+          decoration: const InputDecoration(labelText: "Enter your email"),
+          keyboardType: TextInputType.emailAddress,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              final email = emailController.text.trim();
+              Navigator.pop(context); // Close the dialog
+
+              if (email.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Please enter an email.")),
+                );
+                return;
+              }
+
+              try {
+                await FirebaseAuth.instance.sendPasswordResetEmail(
+                  email: email,
+                );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Reset email sent to $email")),
+                );
+              } on FirebaseAuthException catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text(e.message ?? "Something went wrong")),
+                );
+              }
+            },
+            child: const Text("Send"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -283,9 +362,7 @@ class _LogInState extends State<LogIn> {
 
                       // Forget password
                       TextButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/chgpassword');
-                        },
+                        onPressed: () => showForgotPasswordDialog(context),
                         child: const Text(
                           'Forget password?',
                           style: TextStyle(color: Colors.black54),
