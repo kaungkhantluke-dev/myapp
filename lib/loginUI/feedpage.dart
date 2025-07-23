@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'settings.dart';
 import 'profile.dart';
+import 'settings.dart';
 
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
@@ -13,131 +13,219 @@ class FeedPage extends StatefulWidget {
 }
 
 class _FeedPageState extends State<FeedPage> {
+  final int _itemsPerPage = 5;
+  int _currentPage = 0;
   int _selectedIndex = 0;
 
-  void _onTabTapped(int index) async {
-    if (index == 3) {
-      // Logout
-      await FirebaseAuth.instance.signOut();
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/login');
-      }
-      return;
-    }
+  List<DocumentSnapshot> _questions = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchQuestions();
+  }
+
+  Future<void> _fetchQuestions() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('questions')
+        .orderBy('timestamp', descending: false) // oldest first
+        .get();
 
     setState(() {
-      _selectedIndex = index;
+      _questions = snapshot.docs;
+      _isLoading = false;
     });
   }
 
-  Widget _getSelectedPage() {
-    switch (_selectedIndex) {
-      case 0:
-        return buildFeed();
-      case 1:
-        return const ProfilePage();
-      case 2:
-        return const SettingsPage();
-      default:
-        return buildFeed();
+  List<DocumentSnapshot> _getCurrentPageItems() {
+    int start = _currentPage * _itemsPerPage;
+    int end = start + _itemsPerPage;
+    end = end > _questions.length ? _questions.length : end;
+    return _questions.sublist(start, end);
+  }
+
+  void _goToPage(int pageIndex) {
+    setState(() => _currentPage = pageIndex);
+  }
+
+  void _nextPage() {
+    if ((_currentPage + 1) * _itemsPerPage < _questions.length) {
+      setState(() => _currentPage++);
     }
   }
 
-  Widget buildFeed() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('questions')
-          .orderBy('timestamp')
-          .snapshots(), // oldest first
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+  void _prevPage() {
+    if (_currentPage > 0) {
+      setState(() => _currentPage--);
+    }
+  }
 
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(
-            child: Text(
-              'No questions yet.',
-              style: TextStyle(fontSize: 16, color: Colors.black54),
-            ),
-          );
-        }
+  void _onNavTapped(int index) async {
+    if (index == 3) {
+      await FirebaseAuth.instance.signOut();
+      if (context.mounted) {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+    } else {
+      setState(() => _selectedIndex = index);
+    }
+  }
 
-        final questions = snapshot.data!.docs;
+  Widget _buildBody() {
+    switch (_selectedIndex) {
+      case 0:
+        return _buildFeed();
+      case 1:
+        return const Profile();
+      case 2:
+        return const SettingsPage();
+      default:
+        return _buildFeed();
+    }
+  }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(12),
-          itemCount: questions.length,
-          itemBuilder: (context, index) {
-            final doc = questions[index];
-            final data = doc.data() as Map<String, dynamic>;
+  Widget _buildFeed() {
+    final pageCount = (_questions.length / _itemsPerPage).ceil();
 
-            final question = data['question'] ?? 'No Question';
-            final answer = data['answer'] ?? 'No Answer';
-            final fact = data['fact'] ?? 'No explanation provided.';
-            final timestamp = data['timestamp'] != null
-                ? (data['timestamp'] as Timestamp).toDate()
-                : DateTime.now();
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-            return GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => QuestionDetailPage(
-                      question: question,
-                      answer: answer,
-                      fact: fact,
-                      timestamp: timestamp,
+    if (_questions.isEmpty) {
+      return const Center(
+        child: Text(
+          'No questions yet.',
+          style: TextStyle(fontSize: 16, color: Colors.black54),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        Expanded(
+          child: ListView.builder(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.all(12),
+            itemCount: _getCurrentPageItems().length,
+            itemBuilder: (context, index) {
+              final doc = _getCurrentPageItems()[index];
+              final data = doc.data() as Map<String, dynamic>;
+
+              final question = data['question'] ?? 'No Question';
+              final answer = data['answer'] ?? 'No Answer';
+              final fact = data['fact'] ?? 'No explanation provided.';
+              final timestamp = data['timestamp'] != null
+                  ? (data['timestamp'] as Timestamp).toDate()
+                  : DateTime.now();
+
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => QuestionDetailPage(
+                        question: question,
+                        answer: answer,
+                        fact: fact,
+                        timestamp: timestamp,
+                      ),
                     ),
+                  );
+                },
+                child: Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                );
-              },
-              child: Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 4,
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        question,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.deepPurple,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        answer,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.bottomRight,
-                        child: Text(
-                          DateFormat.yMMMd().add_jm().format(timestamp),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
+                  elevation: 4,
+                  margin: const EdgeInsets.symmetric(vertical: 8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          question,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepPurple,
                           ),
                         ),
+                        const SizedBox(height: 8),
+                        Text(
+                          answer,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(height: 12),
+                        Align(
+                          alignment: Alignment.bottomRight,
+                          child: Text(
+                            DateFormat.yMMMd().add_jm().format(timestamp),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        // Pagination UI
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                onPressed: _prevPage,
+                icon: const Icon(Icons.arrow_back),
+                tooltip: 'Previous Page',
+              ),
+              ...List.generate(
+                pageCount,
+                (index) => GestureDetector(
+                  onTap: () => _goToPage(index),
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _currentPage == index
+                          ? Colors.indigo
+                          : Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${index + 1}',
+                      style: TextStyle(
+                        color: _currentPage == index
+                            ? Colors.white
+                            : Colors.black87,
+                        fontWeight: FontWeight.bold,
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
-            );
-          },
-        );
-      },
+              IconButton(
+                onPressed: _nextPage,
+                icon: const Icon(Icons.arrow_forward),
+                tooltip: 'Next Page',
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -148,13 +236,13 @@ class _FeedPageState extends State<FeedPage> {
         title: const Text('Q&A Feed', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.indigo.shade900,
         centerTitle: true,
-        automaticallyImplyLeading: false, // No back arrow
+        automaticallyImplyLeading: false,
       ),
-      body: _getSelectedPage(),
+      body: _buildBody(),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
-        onTap: _onTabTapped,
-        selectedItemColor: Colors.indigo.shade900,
+        onTap: _onNavTapped,
+        selectedItemColor: Colors.indigo,
         unselectedItemColor: Colors.grey,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
@@ -210,7 +298,6 @@ class QuestionDetailPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(question, style: const TextStyle(fontSize: 16)),
-
                 const SizedBox(height: 16),
                 const Text(
                   'Answer:',
@@ -218,7 +305,6 @@ class QuestionDetailPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(answer, style: const TextStyle(fontSize: 16)),
-
                 const SizedBox(height: 16),
                 const Text(
                   'Explanation (Fact):',
@@ -226,7 +312,6 @@ class QuestionDetailPage extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(fact, style: const TextStyle(fontSize: 16)),
-
                 const Spacer(),
                 Align(
                   alignment: Alignment.bottomRight,
